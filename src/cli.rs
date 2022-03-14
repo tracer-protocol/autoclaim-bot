@@ -20,6 +20,8 @@ pub struct Opts {
     seed_phrase: Option<PathBuf>,
     #[clap(long)]
     seed_phrase_index: Option<u32>,
+    #[clap(long)]
+    read_only: Option<bool>,
 }
 
 #[derive(Debug)]
@@ -61,10 +63,17 @@ impl TryFrom<Opts> for Client<LocalWallet, Http> {
                 Err(e) => return Err(Self::Error::NotHttp(e)),
             };
 
+        if let Some(read_only_mode) = value.read_only {
+            /* no short-circuit due to (https://github.com/rust-lang/rust/issues/53667) */
+            if read_only_mode {
+                return Ok(Self::new(None, http_provider));
+            }
+        }
+
         if let Some(private_key_path) = value.private_key {
             let wallet: LocalWallet =
                 SigningKey::from_bytes(&fs::read(private_key_path)?)?.into();
-            Ok(Self::new(wallet, http_provider))
+            Ok(Self::new(Some(wallet), http_provider))
         } else if let Some(seed_phrase_path) = value.seed_phrase {
             if let Some(index) = value.seed_phrase_index {
                 /* child key at derivation path: m/44'/60'/0'/0/{index} */
@@ -73,7 +82,7 @@ impl TryFrom<Opts> for Client<LocalWallet, Http> {
                     .index(index)?
                     .build()?;
 
-                Ok(Self::new(wallet, http_provider))
+                Ok(Self::new(Some(wallet), http_provider))
             } else {
                 Err(Self::Error::NoOffset)
             }

@@ -45,6 +45,7 @@ impl From<io::Error> for Error {
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     let opts: Opts = Opts::parse();
+    /* TODO: generalise this parsing of clients when Websockets is unblocked */
     let client: Arc<Client<LocalWallet, Http>> = Arc::new(opts.try_into()?);
 
     let mut stream = client.provider().watch_blocks().await?;

@@ -1,3 +1,5 @@
+use std::io;
+use std::io::{stdout, Write};
 use std::sync::Arc;
 
 use clap::Parser;
@@ -18,6 +20,8 @@ pub enum Error {
     ClientOptsError(ClientParseError),
     /// Error in blockchain interaction
     ProviderError(ProviderError),
+    /// Error in I/O
+    IOError(io::Error),
 }
 
 impl From<ClientParseError> for Error {
@@ -29,6 +33,12 @@ impl From<ClientParseError> for Error {
 impl From<ProviderError> for Error {
     fn from(value: ProviderError) -> Self {
         Self::ProviderError(value)
+    }
+}
+
+impl From<io::Error> for Error {
+    fn from(value: io::Error) -> Self {
+        Self::IOError(value)
     }
 }
 
@@ -46,7 +56,11 @@ async fn main() -> Result<(), Error> {
             .get_block_with_txs(block_hash)
             .await?
             .unwrap();
-        println!("{}", serde_json::to_string(&block).expect("Invalid data"));
+        writeln!(
+            stdout(),
+            "{}",
+            serde_json::to_string(&block).expect("Invalid data")
+        )?;
     }
 
     Ok(())

@@ -11,9 +11,12 @@ use crate::client::Client;
 pub mod cli;
 pub mod client;
 
+/// Represents global errors emitted from the bot process itself
 #[derive(Debug)]
 pub enum Error {
+    /// Error parsing client from provided arguments
     ClientOptsError(ClientParseError),
+    /// Error in blockchain interaction
     ProviderError(ProviderError),
 }
 

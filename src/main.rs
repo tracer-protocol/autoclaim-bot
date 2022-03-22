@@ -11,7 +11,7 @@ use ethers::types::{Address, Block, BlockNumber, Filter, Transaction};
 
 use crate::cli::{ClientParseError, Opts};
 use crate::client::Client;
-use crate::pool::LeveragedPool;
+use crate::pool::PoolCommitter;
 
 pub mod cli;
 pub mod client;
@@ -64,12 +64,12 @@ async fn main() -> Result<(), Error> {
     .collect();
 
     let _pools: Vec<
-        LeveragedPool<SignerMiddleware<Provider<Http>, LocalWallet>>,
+        PoolCommitter<SignerMiddleware<Provider<Http>, LocalWallet>>,
     > = pool_addresses
         .iter()
         .copied()
         .map(|x| {
-            LeveragedPool::new(
+            PoolCommitter::new(
                 x,
                 Arc::new(client.as_ref().middleware().unwrap()),
             )

@@ -7,7 +7,6 @@ use ethers::providers::{Http, Provider};
 use ethers::signers::{
     coins_bip39::English, LocalWallet, MnemonicBuilder, WalletError,
 };
-use hex::FromHexError;
 
 use crate::client::Client;
 

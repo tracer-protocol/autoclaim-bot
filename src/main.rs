@@ -7,7 +7,7 @@ use clap::Parser;
 use ethers::prelude::SignerMiddleware;
 use ethers::providers::{Http, Middleware, Provider, ProviderError, StreamExt};
 use ethers::signers::LocalWallet;
-use ethers::types::{Address, Block, BlockNumber, Filter, Transaction};
+use ethers::types::{Address, Filter};
 
 use crate::cli::{ClientParseError, Opts};
 use crate::client::Client;

@@ -1,17 +1,23 @@
 use std::io;
 use std::io::{stdout, Write};
+use std::str::FromStr;
 use std::sync::Arc;
 
 use clap::Parser;
-use ethers::providers::{Http, Middleware, ProviderError, StreamExt};
+use ethers::prelude::SignerMiddleware;
+use ethers::providers::{Http, Middleware, Provider, ProviderError, StreamExt};
 use ethers::signers::LocalWallet;
-use ethers::types::{Block, Transaction};
+use ethers::types::{Address, Filter};
 
 use crate::cli::{ClientParseError, Opts};
 use crate::client::Client;
+use crate::pool::PoolCommitter;
 
 pub mod cli;
 pub mod client;
+pub mod pool;
+
+pub const EVENT_NAME: &str = "UpkeepSuccessful";
 
 /// Represents global errors emitted from the bot process itself
 #[derive(Debug)]
@@ -48,19 +54,38 @@ async fn main() -> Result<(), Error> {
     /* TODO: generalise this parsing of clients when Websockets is unblocked */
     let client: Arc<Client<LocalWallet, Http>> = Arc::new(opts.try_into()?);
 
-    let mut stream = client.provider().watch_blocks().await?;
+    let pool_addresses: Vec<Address> = vec![
+        "0x23A5744eBC353944A4d5baaC177C16b199AfA4ed",
+        "0x98C58c1cEb01E198F8356763d5CbA8EB7b11e4E2",
+    ] /* TODO: placeholder */
+    .iter()
+    .copied()
+    .map(|x| Address::from_str(x).unwrap())
+    .collect();
 
-    /* listen for new blocks */
-    while let Some(block_hash) = stream.next().await {
-        let block: Block<Transaction> = client
-            .provider()
-            .get_block_with_txs(block_hash)
-            .await?
-            .unwrap();
+    let _pools: Vec<
+        PoolCommitter<SignerMiddleware<Provider<Http>, LocalWallet>>,
+    > = pool_addresses
+        .iter()
+        .copied()
+        .map(|x| {
+            PoolCommitter::new(
+                x,
+                Arc::new(client.as_ref().middleware().unwrap()),
+            )
+        })
+        .collect();
+
+    let commitment_filter: Filter = Filter::new().event(EVENT_NAME);
+
+    let mut stream = client.provider().watch(&commitment_filter).await?;
+
+    /* listen for new events */
+    while let Some(log) = stream.next().await {
         writeln!(
             stdout(),
             "{}",
-            serde_json::to_string(&block).expect("Invalid data")
+            serde_json::to_string(&log).expect("Invalid log data")
         )?;
     }
 

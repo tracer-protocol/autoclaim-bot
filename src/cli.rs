@@ -33,6 +33,7 @@ pub enum ClientParseError {
     InvalidWallet(WalletError),
     IoError(std::io::Error),
     KeyError(ethers::core::k256::ecdsa::Error),
+    HexError(hex::FromHexError),
 }
 
 impl From<WalletError> for ClientParseError {
@@ -50,6 +51,12 @@ impl From<std::io::Error> for ClientParseError {
 impl From<ethers::core::k256::ecdsa::Error> for ClientParseError {
     fn from(value: ethers::core::k256::ecdsa::Error) -> Self {
         Self::KeyError(value)
+    }
+}
+
+impl From<hex::FromHexError> for ClientParseError {
+    fn from(value: hex::FromHexError) -> Self {
+        Self::HexError(value)
     }
 }
 
@@ -71,8 +78,10 @@ impl TryFrom<Opts> for Client<LocalWallet, Http> {
         }
 
         if let Some(private_key_path) = value.private_key {
-            let wallet: LocalWallet =
-                SigningKey::from_bytes(&fs::read(private_key_path)?)?.into();
+            let wallet: LocalWallet = SigningKey::from_bytes(&hex::decode(
+                &fs::read_to_string(private_key_path)?.trim(),
+            )?)?
+            .into();
             Ok(Self::new(Some(wallet), http_provider))
         } else if let Some(seed_phrase_path) = value.seed_phrase {
             if let Some(index) = value.seed_phrase_index {
